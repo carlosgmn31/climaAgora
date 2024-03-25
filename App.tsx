@@ -161,7 +161,6 @@ export default function App() {
        <Text className='text-white text-4xl font-bold'>{temp}º</Text>
        <Text className='text-white text-base font-normal'>Precipitations</Text>
        <Text className='text-white text-base font-normal'>Max.: {max} Min.: {min}</Text>
-       <Text className='text-white text-base font-normal'>{min}</Text>
        <View className='flex-row'>
        <View style={{ backgroundColor: '#0D3987',borderTopLeftRadius: 20, borderBottomLeftRadius: 20, padding: 10, width: '30%', alignItems: 'center', justifyContent: 'center' }}>
         <Text className='text-white' ><SimpleLineIcons name="drop" size={15} color="white" /> {chuva} %</Text>
