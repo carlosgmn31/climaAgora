@@ -1,19 +1,38 @@
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
-import { Button,FlatList,SafeAreaView,ScrollView,StyleSheet,Text, TouchableOpacity, View } from 'react-native';
+import { Button,FlatList,Image,Modal,SafeAreaView,ScrollView,StyleSheet,Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Clima from './api/Clima';
 import ConditionSlugImg from './api/ConditionSVG';
 import { SvgXml } from 'react-native-svg';
 import { AntDesign,Feather,Ionicons,SimpleLineIcons,MaterialCommunityIcons} from '@expo/vector-icons';
 
-const cidades = [
-  {id: 'bd7acbea-c1b1-46c2-aed5-3ad53abb28ba',
-    title: 'Recife',
-  },
-  { id: '3ac68afc-c605-48d3-a4f8-fbd91aa97f63',
-    title: 'Outra',
-  }
-];
+
+interface Forecast {
+  max: string,
+  min: string,
+  condition: string,
+  weekday:string,
+}
+
+interface ConditionImages {
+  [key: string]: any; 
+}
+
+const conditionImages :ConditionImages =  {
+  'storm': require('./assets/storm.png'),
+  'snow': require('./assets/snow.png'),
+  'rain': require('./assets/rain.png'),
+  'none_night': require('./assets/none_night.png'),
+  'none_day': require('./assets/none_day.png'),
+  'hail': require('./assets/hail.png'),
+  'fog': require('./assets/fog.png'),
+  'cloudly_night': require('./assets/cloudly_night.png'),
+  'cloudly_day': require('./assets/cloudly_day.png'),
+  'cloud': require('./assets/cloud.png'),
+  'clear_night': require('./assets/clear_night.png'),
+  'clear_day': require('./assets/clear_day.png'),
+
+};
 
 export default function App() {
   const [list, setList] = useState([])
@@ -31,7 +50,10 @@ export default function App() {
   const [condition_slugImage ,setCondition_slugImage] = useState<string | null>(null);  
   const [isOpen, setIsOpen] = useState(false);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
-  const options = ['Recife', 'Rio de Janeiro'];
+  const options = ['Recife', 'Outro'];
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [otherCity, setOtherCity] = useState('');
+  const [isOtherCityModalOpen, setIsOtherCityModalOpen] = useState(false);
 
   const toggleDropdown = () => {
     setIsOpen(!isOpen);
@@ -39,9 +61,26 @@ export default function App() {
 
   const handleOptionSelect = (option:any) => {
     setSelectedOption(option);
+    if (option === 'Outro') {
+      setIsOtherCityModalOpen(true);}
+    else
     setIsOpen(false);
     carregarClima(option)
   };
+
+  const handleOtherCityModalClose = () => {
+    setIsOtherCityModalOpen(false);
+    setOtherCity('');
+  };
+
+  const handleOtherCitySubmit = () => {
+    carregarClima(city);
+    setSelectedOption(city);
+    setIsOtherCityModalOpen(false);
+    setOtherCity('');
+    setIsOpen(false)
+  };
+
     const carregarClima = async (nomeCidade:any) => {
       try {
         console.log(nomeCidade)
@@ -49,7 +88,12 @@ export default function App() {
         console.log(response.data.results.condition_slug)
         const conditionImage = await ConditionSlugImg.getConditionSlugImg(response.data.results.condition_slug)
         setCondition_slugImage(conditionImage.data)
-        setList(response.data.results.forecast);
+        setList(response.data.results.forecast.map((e:Forecast )=> ({
+          'max': e.max,
+          'min': e.min,
+          'condition': e.condition,
+          'weekday':e.weekday
+        })));
         setTemp(response.data.results.temp);
         setCity(response.data.results.city);
         setTime(response.data.results.time);
@@ -70,26 +114,44 @@ export default function App() {
     <View className='flex-1 flex-col  bg-blue-800 justify-center justify-items-center '>
     <View className='flex-0 flex-row justify-center mt-5'>
     <TouchableOpacity onPress={toggleDropdown}>
-        <View >
-          <Text className='text-white px-5 mt-9'>
-          <Feather name="map-pin" size={15} color="white" />
-            {selectedOption || 'Selecione uma cidade '} 
-            <AntDesign name="caretdown" size={15} style={{}} color="white" />
-        
-          </Text>  
-        </View>
-      </TouchableOpacity>
-      {isOpen && (
-        <View >
-          {options.map((option, index) => (
-            <TouchableOpacity 
-              key={index}
-              onPress={() => {handleOptionSelect(option) ; carregarClima(selectedOption)} }>
-              <Text className='text-white px-5 mt-9'>{option}</Text>
-            </TouchableOpacity>
-          ))}
+    <View>
+      <Text className='text-white px-5 mt-9'>
+        <Feather name="map-pin" size={15} color="white" />
+        {selectedOption || 'Selecione uma cidade '}
+        <AntDesign name="caretdown" size={15} style={{}} color="white" />
+      </Text>
+    </View>
+  </TouchableOpacity>
+  {isOpen && (
+    <View style={{ position: 'absolute', top: '100%', left: 0, backgroundColor: 'rgba(0, 0, 0, 0.8)', zIndex: 1 }}>
+      {options.map((option, index) => (
+        <TouchableOpacity className=' bg-blue-800 border-white'
+          key={index}
+          onPress={() => { handleOptionSelect(option); carregarClima(selectedOption) }}>
+          <Text className='text-white px-5 mt-2 mb-2'>{option}</Text>
+        </TouchableOpacity>
+      ))}
         </View>
       )}
+        <Modal
+        visible={isOtherCityModalOpen}
+        onRequestClose={handleOtherCityModalClose}
+        transparent={true}
+      >
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
+          <View style={{ backgroundColor: 'white', padding: 20, borderRadius: 10, width: '80%' }}>
+            <TextInput
+              placeholder="Digite o nome da cidade"
+              
+              onChangeText={setCity}
+            />
+            <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginTop: 10 }}>
+              <Button title="Cancelar" onPress={handleOtherCityModalClose} />
+              <Button title="Confirmar" onPress={handleOtherCitySubmit} />
+            </View>
+          </View>
+        </View>
+      </Modal>
       <TouchableOpacity className='pl-56 mt-9 mr-5'>
        <Ionicons name="notifications-outline" size={15} color="white" />   
        </TouchableOpacity>
@@ -112,12 +174,37 @@ export default function App() {
       </View>
       </View>
       
-      <View className='flex-row mt-5'>
-      <View style={{ backgroundColor: '#0D3987',borderTopLeftRadius: 20, borderBottomLeftRadius: 20,borderTopRightRadius: 20, borderBottomRightRadius: 20, padding: 10, width: '30%', alignItems: 'center', justifyContent: 'center' }}>
-      <ScrollView horizontal={true}>
-      <View className='flex-row'>
-       <Text className='text-white text-lg'>Today </Text><Text className='text-white text-lg'>mar,{date.substring(0,2)}</Text>
-        <Text>{JSON.stringify(list,null,2)}</Text>
+      <View className='flex-row mt-5  '>
+      <View style={{ backgroundColor: '#0D3987',borderTopLeftRadius: 20, borderBottomLeftRadius: 20,borderTopRightRadius: 20, borderBottomRightRadius: 20, padding: 10, width: '90%', alignItems: 'center', justifyContent: 'center' }}>
+      
+      <View className='flex-row  '>
+       <Text className='text-white text-lg  '>Today                                                  </Text><Text className='text-white text-lg'>mar,{parseInt(date.substring(0,2))+selectedIndex}</Text> 
+       </View>
+       
+       <ScrollView horizontal={true}> 
+       <View className='flex-row'>
+       <View className='flex-row'>
+       {list.map((forecast: Forecast, index) => (
+  <View 
+    className={'top-1 items-center space-x-2 mx-2 '} 
+    key={index}  
+  >
+    <TouchableOpacity   className={`top-1 items-center space-x-2  ${index === selectedIndex ? 'highlighted border border-white pr-2' : ''}`} 
+          key={index} 
+          style={{ marginBottom: 10 }}
+          onPress={() => setSelectedIndex(index)} >
+    <Text className={'text-white pl-2'}>{forecast.weekday}</Text>
+    <Text className={'text-white'}>Max: {forecast.max}</Text>
+    <Text className={'text-white'}>Min: {forecast.min}</Text>
+    <Image 
+      source={conditionImages[forecast.condition]} 
+      style={{ width: 50, height: 50 }}
+    />
+    </TouchableOpacity>
+  </View>
+))}
+
+    </View>
        </View>
        </ScrollView>
       </View>
